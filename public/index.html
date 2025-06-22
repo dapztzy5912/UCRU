@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Cek Status Roblox</title>
+</head>
+<body>
+  <h1>Cek Status Online Roblox</h1>
+  <input id="username" placeholder="Masukkan Username Roblox">
+  <button onclick="cek()">Cek Status</button>
+  <pre id="hasil"></pre>
+
+  <script>
+    async function cek() {
+      const username = document.getElementById('username').value
+      if (!username) return alert("Masukkan username dulu!")
+      const res = await fetch(`/cek/${username}`)
+      const data = await res.json()
+      document.getElementById('hasil').innerText = JSON.stringify(data, null, 2)
+    }
+  </script>
+</body>
+</html>
