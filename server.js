@@ -1,32 +1,43 @@
-// server.js
-import express from 'express'
-import axios from 'axios'
-import cheerio from 'cheerio'
+const express = require('express')
+const axios = require('axios')
+const cheerio = require('cheerio')
+const path = require('path')
+
 const app = express()
+const PORT = 3000
+
+app.use(express.static(path.join(__dirname, 'public')))
 
 app.get('/cek/:username', async (req, res) => {
   const username = req.params.username
   try {
-    // Cari userId dari username
-    const userRes = await axios.get(`https://api.roblox.com/users/get-by-username?username=${username}`)
-    const userId = userRes.data.Id
-    const profileUrl = `https://www.roblox.com/users/${userId}/profile`
+    // Step 1: Dapatkan ID pengguna dari username
+    const getId = await axios.get(`https://api.roblox.com/users/get-by-username?username=${username}`)
+    if (!getId.data.Id) return res.json({ error: "Username tidak ditemukan" })
+    const userId = getId.data.Id
 
-    const { data } = await axios.get(profileUrl)
-    const $ = cheerio.load(data)
+    // Step 2: Scrape profil
+    const profileUrl = `https://www.roblox.com/users/${userId}/profile`
+    const { data: html } = await axios.get(profileUrl)
+    const $ = cheerio.load(html)
     const text = $('body').text()
 
-    const isOnline = text.includes('Currently Online') || text.includes('Currently Playing')
-    const gameMatch = text.match(/Currently Playing: (.+?)\\n/)
+    // Step 3: Cek apakah sedang online
+    const isOnline = text.includes("Currently Online") || text.includes("Currently Playing")
+    const gameMatch = text.match(/Currently Playing:\s(.+?)\\n/)
 
     res.json({
       username,
+      userId,
       online: isOnline,
-      game: gameMatch ? gameMatch[1] : null
+      playing: gameMatch ? gameMatch[1] : null
     })
-  } catch (err) {
-    res.json({ error: 'Username tidak ditemukan atau error.' })
+  } catch (e) {
+    console.error(e.message)
+    res.json({ error: "Terjadi kesalahan atau user tidak ditemukan" })
   }
 })
 
-export default app
+app.listen(PORT, () => {
+  console.log(`Server berjalan di http://localhost:${PORT}`)
+})
